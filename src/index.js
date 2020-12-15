@@ -1,5 +1,6 @@
 import express, { json } from 'express'
 import { Kafka } from 'kafkajs'
+import { uuid } from 'uuidv4';
 
 const app = express()
 
@@ -10,22 +11,25 @@ const kafka = new Kafka({
   brokers: ['rocket',]
 })
 
-const producer = kafka.producer()
 
-app.post('/order', (request, response) => {
-  const prod = request.body;
+app.post('/order', async (request, response) => {
+  const product = request.body
+  product.id = uuid()
+  product.status = 'PENDING_PAYMENT'
+
+  const producer = kafka.producer()
   await producer.connect()
 
   await producer.send({
-    topic: 'PRODUTO_COMPRADO',
+    topic: 'PENDENCIES',
     messages: [
-      { value: JSON.stringify(prod) },
+      { value: JSON.stringify(product) },
     ],
   })
 
   await producer.disconnect()
 
-  return response.json({ 'order': prod });
+  return response.json({ 'order': product })
 });
 
-app.listen(3333)
+app.listen(3333, () => console.log('app started \\o/'))
